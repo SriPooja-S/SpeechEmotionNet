@@ -21,9 +21,7 @@ The best-performing model is saved along with evaluation visuals such as **ROC C
 ---
 ## Running the project
 
-bash
-
-pip install -r requirements.txt
-python mlp_feature_extraction.py
-python mlp_model_training.py
-streamlit run app.py
+    pip install -r requirements.txt
+    python mlp_feature_extraction.py
+    python mlp_model_training.py
+    streamlit run app.py
