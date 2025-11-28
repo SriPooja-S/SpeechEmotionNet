@@ -10,3 +10,5 @@ joblib
 soundfile
 shap
 tqdm
+noisereduce
+huggingface_hub
