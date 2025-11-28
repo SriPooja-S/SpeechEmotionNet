@@ -4,13 +4,12 @@ import pandas as pd
 import librosa, joblib, shap, base64, os
 import matplotlib.pyplot as plt
 from tensorflow.keras.models import load_model
+from huggingface_hub import hf_hub_download
 from io import BytesIO
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
-MODEL_DIR = "models"
-VISUALS_DIR = "visuals"
-
+REPO_ID = "Pooja001/SpeechEmotionNet"
 
 st.set_page_config(page_title="SpeechEmotionNet — SER", layout="wide")
 
@@ -32,13 +31,15 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
 st.title(" SpeechEmotionNet — Speech Emotion Recognition")
 
+# Load models from Hugging face
 @st.cache_resource
 def load_assets():
-    model_path = os.path.join(MODEL_DIR, "SpeechEmotionNet_best.keras")
-    scaler_path = os.path.join(MODEL_DIR, "scaler.joblib")
-    encoder_path = os.path.join(MODEL_DIR, "encoder.joblib")
+    model_path = hf_hub_download(repo_id=REPO_ID, filename="SpeechEmotionNet_best.keras")
+    scaler_path = hf_hub_download(repo_id=REPO_ID, filename="scaler.joblib")
+    encoder_path = hf_hub_download(repo_id=REPO_ID, filename="encoder.joblib")
 
     model = load_model(model_path)
     scaler = joblib.load(scaler_path)
@@ -46,9 +47,7 @@ def load_assets():
 
     return model, scaler, encoder
 
-
 model, scaler, encoder = load_assets()
-
 
 def extract_features_from_array(y, sr=16000):
     y = librosa.util.normalize(y)
@@ -60,13 +59,14 @@ def extract_features_from_array(y, sr=16000):
 
     return np.hstack([mfccs, chroma, contrast, zcr])
 
+
 tab_pred, tab_explain, tab_eval = st.tabs([
     "Prediction",
     "Explainability (SHAP)",
     "Evaluation Metrics"
 ])
 
-# Tab 1 - Prediction
+# Prediction
 with tab_pred:
 
     uploaded_file = st.file_uploader("Upload a WAV file", type=["wav"])
@@ -98,18 +98,19 @@ with tab_pred:
         else:
             st.success(f"Predicted Emotion: {pred_label.upper()} ({p1:.2f} confidence)")
 
-        # Probability bar chart
+        # Probability bar plot
         prob_df = pd.DataFrame({"Emotion": encoder.classes_, "Probability": probs}).set_index("Emotion")
         st.bar_chart(prob_df)
 
-        # Download CSV
+        # CSV Download
         csv_buffer = BytesIO()
         prob_df.to_csv(csv_buffer)
         b64 = base64.b64encode(csv_buffer.getvalue()).decode()
         href = f'<a href="data:file/csv;base64,{b64}" download="emotion_probs.csv">Download Prediction CSV</a>'
         st.markdown(href, unsafe_allow_html=True)
 
-# Tab 2 - Explainability
+
+# SHAP - explainability
 with tab_explain:
 
     st.subheader("SHAP Explainability for Uploaded Audio")
@@ -155,7 +156,7 @@ with tab_explain:
         st.subheader("Top 10 Most Influential Features")
         st.dataframe(df_shap.head(10))
 
-        # Barh chart
+        # Plot
         fig, ax = plt.subplots(figsize=(6,5))
         ax.barh(df_shap.head(10)["Feature"], df_shap.head(10)["ABS_SHAP"])
         ax.invert_yaxis()
@@ -163,24 +164,24 @@ with tab_explain:
         st.pyplot(fig, use_container_width=True)
 
 
-# Tab 3 - Evaluation
+# Visuals
 with tab_eval:
 
     st.subheader("Model Evaluation Metrics")
 
-    def show_eval_image(filename, caption):
-        path = os.path.join(VISUALS_DIR, filename)
-        if os.path.exists(path):
-            encoded = base64.b64encode(open(path, "rb").read()).decode()
+    def show_hf_visual(filename, caption):
+        try:
+            file_path = hf_hub_download(repo_id=REPO_ID, filename=f"visuals/{filename}")
+            encoded = base64.b64encode(open(file_path, "rb").read()).decode()
             st.markdown(
                 f'<img src="data:image/png;base64,{encoded}" class="custom-image">',
                 unsafe_allow_html=True
             )
             st.caption(caption)
-        else:
-            st.warning(f"{filename} not found.")
+        except:
+            st.warning(f"{filename} not found in HuggingFace repo.")
 
     with st.expander("Technical Plots", expanded=False):
-        show_eval_image("roc_curve.png", "ROC Curve (Best Fold)")
-        show_eval_image("confusion_matrix.png", "Confusion Matrix")
-        show_eval_image("cv_accuracy.png", "Cross-Validation Accuracy")
+        show_hf_visual("roc_curve.png", "ROC Curve (Best Fold)")
+        show_hf_visual("confusion_matrix.png", "Confusion Matrix")
+        show_hf_visual("cv_accuracy.png", "Cross-Validation Accuracy")
