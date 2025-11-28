@@ -1,0 +1,33 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+
+# Datasets (do NOT upload)
+AUDIO DATASET 24/
+*.wav
+
+# Feature CSVs
+ravdess_features.csv
+*.csv
+
+# Model files (host on HuggingFace)
+models/
+*.keras
+*.h5
+*.joblib
+*.tmp
+checkpoint/
+
+# Visuals
+visuals/
+*.png
+
+# OS files
+.DS_Store
+Thumbs.db
