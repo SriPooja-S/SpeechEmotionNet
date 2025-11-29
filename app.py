@@ -109,7 +109,6 @@ with tab_pred:
         href = f'<a href="data:file/csv;base64,{b64}" download="emotion_probs.csv">Download Prediction CSV</a>'
         st.markdown(href, unsafe_allow_html=True)
 
-
 # SHAP - explainability
 with tab_explain:
 
@@ -131,9 +130,11 @@ with tab_explain:
 
         st.info(f"SHAP explanation for: {pred_label.upper()}")
 
+        # Use KernelExplainer (works reliably on CPU / TF2 / Streamlit)
         background = X + np.random.normal(0, 0.01, X.shape)
-        explainer = shap.DeepExplainer(model, background)
-        shap_values = explainer.shap_values(X)
+        explainer = shap.KernelExplainer(model.predict, background)
+
+        shap_values = explainer.shap_values(X, nsamples=100)
 
         if isinstance(shap_values, list):
             shap_values = shap_values[pred_class]
@@ -156,7 +157,6 @@ with tab_explain:
         st.subheader("Top 10 Most Influential Features")
         st.dataframe(df_shap.head(10))
 
-        # Plot
         fig, ax = plt.subplots(figsize=(6,5))
         ax.barh(df_shap.head(10)["Feature"], df_shap.head(10)["ABS_SHAP"])
         ax.invert_yaxis()
